@@ -63,6 +63,7 @@ func upload(cmd *cobra.Command, args []string) {
 		fmt.Println("servers not found")
 		return
 	}
+	fmt.Println("press ctrl+c to stop")
 	ch := make(chan bool)
 	go func() {
 		for _, server := range list {
@@ -95,7 +96,7 @@ func upload(cmd *cobra.Command, args []string) {
 	}()
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT, os.Interrupt)
-	fmt.Println("press ctrl+c to stop")
+
 	select {
 	case <-ch:
 		fmt.Println("")
