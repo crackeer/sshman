@@ -2,11 +2,13 @@ package upload
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"sshman/define"
 	"sshman/service"
+	"strings"
 	"syscall"
 
 	"github.com/spf13/cobra"
@@ -48,6 +50,20 @@ func NewUploadCommand() *cobra.Command {
 }
 
 func upload(cmd *cobra.Command, args []string) {
+
+	uploadFiles := []UploadFileConfig{}
+	for _, file := range args {
+		files, err := collectFiles(file, targetDir)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		uploadFiles = append(uploadFiles, files...)
+	}
+	if len(uploadFiles) == 0 {
+		fmt.Println("no files found")
+		return
+	}
 	list := []*define.Server{}
 	if len(group) > 0 {
 		list = serverConfig.FindByGroup(group)
@@ -75,18 +91,21 @@ func upload(cmd *cobra.Command, args []string) {
 				os.Exit(1)
 			}
 
-			err = client.Mkdir(targetDir)
-			if err != nil {
-				fmt.Println("mkdir error:", err, server.Host, targetDir)
-				os.Exit(1)
-			}
-
-			for index, file := range args {
-				_, name := filepath.Split(file)
-				fmt.Println(index+1, ". updload:", file, "->", targetDir+"/"+name)
-				err = client.UploadTo(file, targetDir+"/"+name)
+			for index, file := range uploadFiles {
+				fmt.Println("")
+				fmt.Println(fmt.Sprintf("[%d/%d]", index+1, len(uploadFiles)), server.Host)
+				fmt.Println("from:", file.From)
+				fmt.Println("  to:", file.To)
+				remoteDir := parentDir(file.To)
+				err = client.Mkdir(remoteDir)
 				if err != nil {
-					fmt.Println("upload error:", err, server.Host, targetDir+"/"+name)
+					fmt.Println("mkdir error:", err, server.Host, targetDir)
+					os.Exit(1)
+				}
+
+				err = client.UploadTo(file.From, file.To)
+				if err != nil {
+					fmt.Println("upload error:", err, server.Host, file.From, file.To)
 					os.Exit(1)
 				}
 			}
@@ -105,4 +124,57 @@ func upload(cmd *cobra.Command, args []string) {
 		fmt.Println("user cancel")
 	}
 
+}
+
+type UploadFileConfig struct {
+	From string
+	To   string
+}
+
+func collectFiles(file string, targetDir string) ([]UploadFileConfig, error) {
+	stat, err := os.Stat(file)
+	if err != nil {
+		return nil, err
+	}
+	retData := []UploadFileConfig{}
+	if stat.IsDir() {
+		mapping, _ := GetFileMapping(file)
+		for key, value := range mapping {
+			retData = append(retData, UploadFileConfig{
+				From: value,
+				To:   targetDir + "/" + key,
+			})
+		}
+		return retData, nil
+	}
+	retData = append(retData, UploadFileConfig{
+		From: file,
+		To:   targetDir + "/" + filepath.Base(file),
+	})
+	return retData, nil
+}
+
+func GetFileMapping(path string) (map[string]string, error) {
+	retData := map[string]string{}
+	err := filepath.Walk(path, func(tmpPath string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if filepath.Clean(path) == filepath.Clean(tmpPath) {
+			return nil
+		}
+		if info.IsDir() {
+			return nil
+		}
+		name, _ := filepath.Rel(path, tmpPath)
+		retData[name] = tmpPath
+		return nil
+	})
+
+	return retData, err
+}
+
+func parentDir(path string) string {
+	parts := strings.Split(path, "/")
+	return strings.Join(parts[0:len(parts)-1], "/")
 }
