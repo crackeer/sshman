@@ -35,7 +35,7 @@ func completer(in prompt.Document) []prompt.Suggest {
 func create(cmd *cobra.Command, args []string) {
 	host := args[0]
 	password = args[1]
-	index := serverConfig.Find(host)
+	index := define.GServerConfig.Find(host)
 	var (
 		err error
 	)
@@ -44,7 +44,7 @@ func create(cmd *cobra.Command, args []string) {
 		if yesNo != "yes" {
 			return
 		}
-		err = serverConfig.UpdateByIndex(index, &define.Server{
+		err = define.GServerConfig.UpdateByIndex(index, &define.Server{
 			User:     user,
 			Password: password,
 			Host:     host,
@@ -53,7 +53,7 @@ func create(cmd *cobra.Command, args []string) {
 		})
 
 	} else {
-		err = serverConfig.Add(&define.Server{
+		err = define.GServerConfig.Add(&define.Server{
 			User:     user,
 			Password: password,
 			Host:     host,

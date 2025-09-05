@@ -20,15 +20,15 @@ func newServerCopyCommand() *cobra.Command {
 
 func copy(cmd *cobra.Command, args []string) {
 	host := args[0]
-	index := serverConfig.Find(host)
+	index := define.GServerConfig.Find(host)
 	if index < 0 {
 		fmt.Println("server not found")
 		return
 	}
-	theOne := serverConfig.Get(index)
+	theOne := define.GServerConfig.Get(index)
 
 	for _, server := range args[1:] {
-		serverConfig.Add(&define.Server{
+		define.GServerConfig.Add(&define.Server{
 			User:     theOne.User,
 			Password: theOne.Password,
 			Host:     server,

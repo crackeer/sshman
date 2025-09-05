@@ -4,24 +4,10 @@ import (
 	"fmt"
 	"os"
 	"sshman/define"
-	"sshman/service"
 
 	"github.com/spf13/cobra"
 	"github.com/tomlazar/table"
 )
-
-var (
-	serverConfig *service.ServerConfig
-)
-
-func init() {
-	var err error
-	serverConfig, err = service.NewServerConfig()
-	if err != nil {
-		fmt.Println("init server config error:", err)
-		os.Exit(1)
-	}
-}
 
 // NewServerCommand
 //
@@ -36,11 +22,13 @@ func NewServerCommand(use string) *cobra.Command {
 	cmd.AddCommand(newServerCreateCommand())
 	cmd.AddCommand(newServerCopyCommand())
 	cmd.AddCommand(newServerDeleteCommand())
+	cmd.AddCommand(newServerTestCommand())
+	cmd.AddCommand(newServerGroupCommand())
 	return cmd
 }
 
 func List(cmd *cobra.Command, args []string) {
-	list := serverConfig.List()
+	list := define.GServerConfig.List()
 	tableData := []define.Server{}
 	for _, server := range list {
 		tableData = append(tableData, *server)

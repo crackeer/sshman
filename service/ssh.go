@@ -68,11 +68,30 @@ func (s *SSHClient) RemoveDir(tempDir string) error {
 
 func (s *SSHClient) K3sImport(remoteFile string) error {
 	session, err := s.client.NewSession()
+
 	if err != nil {
 		return fmt.Errorf("new ssh session error: %s", err.Error())
 	}
+	session.Stdout = os.Stdout
+	session.Stderr = os.Stderr
 	defer session.Close()
 	cmd := fmt.Sprintf("k3s ctr image import %s", remoteFile)
+	if err := session.Run(cmd); err != nil {
+		return fmt.Errorf("exec ssh command error: %s", err.Error())
+	}
+	return nil
+}
+
+func (s *SSHClient) DockerLoad(remoteFile string) error {
+	session, err := s.client.NewSession()
+
+	if err != nil {
+		return fmt.Errorf("new ssh session error: %s", err.Error())
+	}
+	session.Stdout = os.Stdout
+	session.Stderr = os.Stderr
+	defer session.Close()
+	cmd := fmt.Sprintf("docker load -i %s", remoteFile)
 	if err := session.Run(cmd); err != nil {
 		return fmt.Errorf("exec ssh command error: %s", err.Error())
 	}

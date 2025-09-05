@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"sshman/define"
 
 	"github.com/spf13/cobra"
 )
@@ -20,7 +21,7 @@ func newServerDeleteCommand() *cobra.Command {
 func del(cmd *cobra.Command, args []string) {
 	for _, server := range args {
 		fmt.Println("--> delete server:", server)
-		serverConfig.DeleteByHost(server)
+		define.GServerConfig.DeleteByHost(server)
 	}
 
 	fmt.Println("delete success")

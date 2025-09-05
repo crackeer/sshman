@@ -1,4 +1,4 @@
-package upload
+package load
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sshman/define"
 	"sshman/service"
+	"strings"
 	"syscall"
 
 	"github.com/spf13/cobra"
@@ -19,22 +20,32 @@ var (
 // NewUploadCommand
 //
 //	@return *cobra.Command
-func NewUploadCommand() *cobra.Command {
+func NewImportCommand(engine string) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "upload",
-		Short: "upload ",
-		Run:   upload,
+		Use:   engine + "-import",
+		Short: "import files to k3s or docker",
+		Run:   importTar,
 		Args:  cobra.MinimumNArgs(1),
+		Annotations: map[string]string{
+			"engine": engine,
+		},
 	}
-
-	cmd.Flags().StringVarP(&targetDir, "remote-dir", "d", "/tmp/sshman/upload", "--dir=xxx -d xxx")
+	engine = strings.ToLower(engine)
+	defaultTargetDir := "/tmp/sshman/image-upload"
+	cmd.Flags().StringVarP(&targetDir, "remote-dir", "d", defaultTargetDir, "--dir=xxx -d xxx")
 	return cmd
 }
 
-func upload(cmd *cobra.Command, args []string) {
+func importTar(cmd *cobra.Command, args []string) {
+	list := define.GetServers()
+	if len(list) == 0 {
+		fmt.Println("servers not found")
+		return
+	}
+
 	uploadFiles := []UploadFileConfig{}
 	for _, file := range args {
-		files, err := collectFiles(file, targetDir)
+		files, err := collectTarFiles(file, targetDir)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -45,11 +56,7 @@ func upload(cmd *cobra.Command, args []string) {
 		fmt.Println("no files found")
 		return
 	}
-	list := define.GetServers()
-	if len(list) == 0 {
-		fmt.Println("servers not found")
-		return
-	}
+
 	fmt.Println("press ctrl+c to stop")
 	ch := make(chan bool)
 	go func() {
@@ -79,10 +86,22 @@ func upload(cmd *cobra.Command, args []string) {
 					fmt.Println("upload error:", err, server.Host, file.From, file.To)
 					os.Exit(1)
 				}
+				engine := cmd.Annotations["engine"]
+				fmt.Println("loading file:", file.To)
+				if engine == "k3s" {
+					err = client.K3sImport(file.To)
+				}
+				if engine == "docker" {
+					err = client.DockerLoad(file.To)
+				}
+				if err != nil {
+					fmt.Println("load error:", err, server.Host, file.To)
+					os.Exit(1)
+				}
 			}
+
 		}
 		ch <- true
-
 	}()
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT, os.Interrupt)
@@ -94,7 +113,6 @@ func upload(cmd *cobra.Command, args []string) {
 	case <-signalChan:
 		fmt.Println("user cancel")
 	}
-
 }
 
 type UploadFileConfig struct {
@@ -102,18 +120,24 @@ type UploadFileConfig struct {
 	To   string
 }
 
-func collectFiles(file string, targetDir string) ([]UploadFileConfig, error) {
+func collectTarFiles(file string, targetDir string) ([]UploadFileConfig, error) {
 	stat, err := os.Stat(file)
 	if err != nil {
 		return nil, err
 	}
 	retData := []UploadFileConfig{}
 	if stat.IsDir() {
-		mapping, _ := service.GetFileMapping(file)
-		for key, value := range mapping {
+		entry, err := os.ReadDir(file)
+		if err != nil {
+			return nil, err
+		}
+		for _, value := range entry {
+			if value.IsDir() || !strings.HasSuffix(value.Name(), ".tar") {
+				continue
+			}
 			retData = append(retData, UploadFileConfig{
-				From: value,
-				To:   targetDir + "/" + key,
+				From: filepath.Join(file, value.Name()),
+				To:   targetDir + "/" + value.Name(),
 			})
 		}
 		return retData, nil

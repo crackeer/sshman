@@ -2,6 +2,8 @@ package server
 
 import (
 	"fmt"
+	"sshman/define"
+	"sshman/service"
 
 	"github.com/spf13/cobra"
 )
@@ -18,12 +20,20 @@ func newServerTestCommand() *cobra.Command {
 }
 
 func test(cmd *cobra.Command, args []string) {
-	index := serverConfig.Find(args[0])
-
-	if index < 0 {
-		fmt.Println("server not found")
-		return
+	for _, server := range args {
+		fmt.Println("--> test server:", server)
+		index := define.GServerConfig.Find(server)
+		if index < 0 {
+			fmt.Println("server not found")
+			return
+		}
+		config := define.GServerConfig.Get(index)
+		client, err := service.NewSSHClient(config)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		fmt.Println("connect success.")
+		client.Close()
 	}
-	theOne := serverConfig.Get(index)
-	fmt.Println(theOne)
 }
