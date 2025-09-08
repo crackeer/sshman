@@ -127,7 +127,6 @@ func (s *SSHClient) UploadTo(localFile, remoteFile string) error {
 	return err
 }
 
-
 func (s *SSHClient) DownloadTo(remoteFile, localFile string) error {
 	sftpClient, err := sftp.NewClient(s.client)
 	if err != nil {
@@ -159,4 +158,18 @@ func (s *SSHClient) DownloadTo(remoteFile, localFile string) error {
 	writer := bar.NewProxyWriter(dstFile)
 	_, err = io.Copy(writer, srcFile)
 	return err
+}
+
+func (s *SSHClient) RunCommand(command string) error {
+	session, err := s.client.NewSession()
+	if err != nil {
+		return fmt.Errorf("new ssh session error: %s", err.Error())
+	}
+	session.Stdout = os.Stdout
+	session.Stderr = os.Stderr
+	defer session.Close()
+	if err := session.Run(command); err != nil {
+		return fmt.Errorf("exec ssh command error: %s", err.Error())
+	}
+	return nil
 }

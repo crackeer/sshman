@@ -2,6 +2,7 @@ package main
 
 import (
 	"sshman/command/load"
+	"sshman/command/run"
 	"sshman/command/server"
 	"sshman/command/upload"
 	"sshman/define"
@@ -25,7 +26,7 @@ func main() {
 	rootCmd.AddCommand(upload.NewUploadCommand())
 	rootCmd.AddCommand(load.NewImportCommand("k3s"))
 	rootCmd.AddCommand(load.NewImportCommand("docker"))
-
+	rootCmd.AddCommand(run.NewRunCommand())
 	rootCmd.Execute()
 
 }
@@ -36,5 +37,4 @@ func runHelp(cmd *cobra.Command, args []string) {
 		cmd.Help()
 		return
 	}
-
 }
