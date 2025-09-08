@@ -66,7 +66,7 @@ func (s *SSHClient) RemoveDir(tempDir string) error {
 	return nil
 }
 
-func (s *SSHClient) K3sImport(remoteFile string) error {
+func (s *SSHClient) Run(cmd string) error {
 	session, err := s.client.NewSession()
 
 	if err != nil {
@@ -75,27 +75,18 @@ func (s *SSHClient) K3sImport(remoteFile string) error {
 	session.Stdout = os.Stdout
 	session.Stderr = os.Stderr
 	defer session.Close()
-	cmd := fmt.Sprintf("k3s ctr image import %s", remoteFile)
 	if err := session.Run(cmd); err != nil {
 		return fmt.Errorf("exec ssh command error: %s", err.Error())
 	}
 	return nil
 }
 
-func (s *SSHClient) DockerLoad(remoteFile string) error {
-	session, err := s.client.NewSession()
+func (s *SSHClient) K3sImport(remoteFile string) error {
+	return s.Run(fmt.Sprintf("k3s ctr image import %s", remoteFile))
+}
 
-	if err != nil {
-		return fmt.Errorf("new ssh session error: %s", err.Error())
-	}
-	session.Stdout = os.Stdout
-	session.Stderr = os.Stderr
-	defer session.Close()
-	cmd := fmt.Sprintf("docker load -i %s", remoteFile)
-	if err := session.Run(cmd); err != nil {
-		return fmt.Errorf("exec ssh command error: %s", err.Error())
-	}
-	return nil
+func (s *SSHClient) DockerLoad(remoteFile string) error {
+	return s.Run(fmt.Sprintf("docker load -i %s", remoteFile))
 }
 
 // UploadTo
@@ -126,6 +117,40 @@ func (s *SSHClient) UploadTo(localFile, remoteFile string) error {
 		return fmt.Errorf("create remote file error: %s", err.Error())
 	}
 	defer dstFile.Close()
+
+	// 创建进度条
+	bar := pb.Full.Start64(fileStat.Size())
+	defer bar.Finish()
+	// 创建带进度条的写入器
+	writer := bar.NewProxyWriter(dstFile)
+	_, err = io.Copy(writer, srcFile)
+	return err
+}
+
+
+func (s *SSHClient) DownloadTo(remoteFile, localFile string) error {
+	sftpClient, err := sftp.NewClient(s.client)
+	if err != nil {
+		return err
+	}
+	defer sftpClient.Close()
+
+	srcFile, err := sftpClient.Open(remoteFile)
+	if err != nil {
+		return fmt.Errorf("open remote file error: %s", err.Error())
+	}
+	defer srcFile.Close()
+
+	dstFile, err := os.Create(localFile)
+	if err != nil {
+		return fmt.Errorf("create local file error: %s", err.Error())
+	}
+	defer dstFile.Close()
+
+	fileStat, err := srcFile.Stat()
+	if err != nil {
+		return fmt.Errorf("file stat error: %v", err)
+	}
 
 	// 创建进度条
 	bar := pb.Full.Start64(fileStat.Size())
