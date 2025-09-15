@@ -25,7 +25,7 @@ func NewShellCommand(engine string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   engine,
 		Short: "execute shell files",
-		Run:   importTar,
+		Run:   runShell,
 		Args:  cobra.MinimumNArgs(1),
 		Annotations: map[string]string{
 			"engine": engine,
@@ -34,7 +34,7 @@ func NewShellCommand(engine string) *cobra.Command {
 	return cmd
 }
 
-func importTar(cmd *cobra.Command, args []string) {
+func runShell(cmd *cobra.Command, args []string) {
 	list := define.GetServers()
 	if len(list) == 0 {
 		fmt.Println("servers not found")
