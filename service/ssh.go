@@ -127,6 +127,11 @@ func (s *SSHClient) UploadTo(localFile, remoteFile string) error {
 	return err
 }
 
+// DownloadTo
+//
+//	@param remoteFile
+//	@param localFile
+//	@return error
 func (s *SSHClient) DownloadTo(remoteFile, localFile string) error {
 	sftpClient, err := sftp.NewClient(s.client)
 	if err != nil {
@@ -160,6 +165,10 @@ func (s *SSHClient) DownloadTo(remoteFile, localFile string) error {
 	return err
 }
 
+// RunCommand
+//
+//	@param command
+//	@return error
 func (s *SSHClient) RunCommand(command string) error {
 	session, err := s.client.NewSession()
 	if err != nil {

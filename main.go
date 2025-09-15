@@ -4,6 +4,7 @@ import (
 	"sshman/command/load"
 	"sshman/command/run"
 	"sshman/command/server"
+	"sshman/command/shell"
 	"sshman/command/upload"
 	"sshman/define"
 
@@ -27,6 +28,8 @@ func main() {
 	rootCmd.AddCommand(load.NewImportCommand("k3s"))
 	rootCmd.AddCommand(load.NewImportCommand("docker"))
 	rootCmd.AddCommand(run.NewRunCommand())
+	rootCmd.AddCommand(shell.NewShellCommand("bash"))
+	rootCmd.AddCommand(shell.NewShellCommand("sh"))
 	rootCmd.Execute()
 
 }

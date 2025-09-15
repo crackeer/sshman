@@ -27,7 +27,7 @@ func NewUploadCommand() *cobra.Command {
 		Args:  cobra.MinimumNArgs(1),
 	}
 
-	cmd.Flags().StringVarP(&targetDir, "remote-dir", "d", "/tmp/sshman/upload", "--dir=xxx -d xxx")
+	cmd.Flags().StringVarP(&targetDir, "remote-dir", "d", "/tmp/sshman/upload", "--remote-dir=xxx -d xxx")
 	return cmd
 }
 

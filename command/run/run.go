@@ -42,7 +42,6 @@ func run(cmd *cobra.Command, args []string) {
 	ch := make(chan bool)
 	go func() {
 		for _, server := range list {
-
 			client, err := service.NewSSHClient(server)
 			if err != nil {
 				fmt.Println(err)
@@ -74,7 +73,7 @@ func run(cmd *cobra.Command, args []string) {
 
 func getCommands(args []string) []string {
 	if len(args) > 0 {
-		return args
+		return []string{strings.Join(args, "")}
 	}
 	data, err := io.ReadAll(os.Stdin)
 	if err != nil {

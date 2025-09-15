@@ -32,7 +32,7 @@ func NewImportCommand(engine string) *cobra.Command {
 	}
 	engine = strings.ToLower(engine)
 	defaultTargetDir := "/tmp/sshman/image-upload"
-	cmd.Flags().StringVarP(&targetDir, "remote-dir", "d", defaultTargetDir, "--dir=xxx -d xxx")
+	cmd.Flags().StringVarP(&targetDir, "remote-dir", "d", defaultTargetDir, "--remote-dir=xxx -d xxx")
 	return cmd
 }
 
